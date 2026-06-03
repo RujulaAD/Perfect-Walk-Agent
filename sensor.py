@@ -12,7 +12,7 @@ def fetch_street_view(address: str, output_filename: str = "street.jpg"):
     """
     Pings the Google Street View Static API and downloads an image of the address.
     """
-    print(f"📡 Pinging satellites for: {address}...")
+    print(f"Pinging satellites for: {address}...")
     
     url = "https://maps.googleapis.com/maps/api/streetview"
     
@@ -31,9 +31,9 @@ def fetch_street_view(address: str, output_filename: str = "street.jpg"):
     if response.status_code == 200:
         with open(output_filename, 'wb') as file:
             file.write(response.content)
-        print(f"✅ Success! Image saved locally as '{output_filename}'")
+        print(f"Success! Image saved locally as '{output_filename}'")
     else:
-        print(f"❌ Error: Google denied the request. Code {response.status_code}")
+        print(f"Error: Google denied the request. Code {response.status_code}")
 
 # --- Test it on a classic busy intersection ---
 if __name__ == "__main__":
