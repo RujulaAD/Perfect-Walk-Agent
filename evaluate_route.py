@@ -50,11 +50,37 @@ def analyze_entire_route(start: str, end: str):
     print("==============================================")
     print(f"Total Checkpoints Evaluated: {len(route_scores)}")
     
-    # 5. Let's look at the brief summary of the first checkpoint as a quick test
     if route_scores:
-        print("\nFirst Checkpoint Vibe Check:")
-        print(route_scores[0].get("brief_summary"))
+        # Initialize running totals for our metrics
+        total_peaceful = 0
+        total_shade = 0
+        total_lighting = 0
+        total_stroller = 0
+        
+        # Loop through each checkpoint and add up the scores
+        for score in route_scores:
+            total_peaceful += score["sensory_and_comfort"]["sensory_peaceful"]
+            total_shade += score["sensory_and_comfort"]["shade_coverage"]
+            total_lighting += score["safety_and_security"]["nighttime_lighting"]
+            total_stroller += score["mobility"]["stroller_friendly"]
+            
+        # Calculate the mathematical averages
+        num_points = len(route_scores)
+        avg_peaceful = total_peaceful / num_points
+        avg_shade = total_shade / num_points
+        avg_lighting = total_lighting / num_points
+        avg_stroller = total_stroller / num_points
+        
+        # Print the final scorecard
+        print(f"\nAverage Peacefulness:  {avg_peaceful:.1f} / 5")
+        print(f"Average Shade Coverage: {avg_shade:.1f} / 5")
+        print(f"Average Night Lighting: {avg_lighting:.1f} / 5")
+        print(f"Average Accessibility:  {avg_stroller:.1f} / 5")
+        
+        print("\n----------------------------------------------")
+        print("Route Narrative Journey:")
+        for idx, score in enumerate(route_scores):
+            print(f"Stop {idx+1}: {score.get('brief_summary')}\n")
 
 if __name__ == "__main__":
-    # Let's run the full pipeline test!
     analyze_entire_route("Times Square, New York, NY", "Bryant Park, New York, NY")

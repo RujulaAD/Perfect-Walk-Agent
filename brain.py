@@ -43,8 +43,8 @@ class StreetAnalysis(BaseModel):
     brief_summary: str = Field(description="A 2-sentence summary of the street's vibe.")
 
 def analyze_street(image_path="street.jpg"):
-    print("🧠 Booting up Gemini Vision AI...")
-    print(f"👀 Analyzing '{image_path}'...")
+    print("Booting up Gemini Vision AI...")
+    print(f"Analyzing '{image_path}'...")
     
     # 3. Open the image downloaded in Phase 1
     img = Image.open(image_path)
