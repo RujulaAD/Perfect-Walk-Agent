@@ -1,61 +1,100 @@
 import streamlit as st
 import json
+import os
+from router import get_route_waypoints
 from sensor import fetch_street_view
 from brain import analyze_street
 
 st.set_page_config(page_title="The Perfect Walk", page_icon="🚶🏾‍♀️", layout="centered")
 
 st.title("The Perfect Walk Agent")
-st.write("Enter any address in the world. Our Multimodal AI will analyze the street-level environment for safety, accessibility, and vibe.")
+st.write("Enter your origin and destination. Our Multi-stage AI pipeline will extract waypoints, download real street-level conditions, and score the entire path.")
 
-address = st.text_input("Enter an Address or Intersection (e.g., Times Square, NY):")
+# Create two input fields side-by-side
+col_in1, col_in2 = st.columns(2)
+with col_in1:
+    origin = st.text_input("Origin:", value="Times Square, New York, NY")
+with col_in2:
+    destination = st.text_input("Destination:", value="Bryant Park, New York, NY")
 
-if st.button("Analyze Environment"):
-    if address:
-        with st.spinner("Pinging Google Satellites for Street View..."):
-            image_file = "temp_street.jpg"
-            fetch_street_view(address, image_file)
-            st.image(image_file, caption=f"Live view of: {address}")
+if st.button("Analyze Entire Walking Route", type="primary"):
+    if origin and destination:
+        
+        # 1. Fetch the route checkpoints
+        with st.spinner("Mapping route via Google Directions API..."):
+            waypoints = get_route_waypoints(origin, destination)
             
-        with st.spinner("Gemini Vision AI is analyzing the environment..."):
-            json_data = analyze_street(image_file)
-            parsed_data = json.loads(json_data)
+        if not waypoints:
+            st.error("No walking route found between those locations.")
+        else:
+            st.success(f"Extracted {len(waypoints)} key checkpoints along the path!")
             
-            st.success("Analysis Complete!")
+            route_scores = []
             
-            # --- THE NEW UI DASHBOARD STARTS HERE ---
+            # Create a clean loading progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
             
-            # 1. The AI's Human Summary
-            st.subheader("Agent Summary")
-            st.info(parsed_data.get("brief_summary", "No summary provided."))
-            
-            st.divider() # A clean visual line
-            
-            # 2. Creating a 2x2 Grid for the scores
-            col1, col2 = st.columns(2)
-            
-            # Column 1: Sensory & Safety
-            with col1:
-                st.subheader("🌿 Sensory & Vibe")
-                vibe = parsed_data["sensory_and_comfort"]
-                st.metric("Peace & Quiet", f"{vibe['sensory_peaceful']} / 5")
-                st.metric("Shade & Trees", f"{vibe['shade_coverage']} / 5")
-                st.metric("Nature Immersion", f"{vibe['nature_immersion']} / 5")
+            # 2. Run the Evaluation Loop
+            for idx, coord in enumerate(waypoints):
+                status_text.markdown(f"**Processing Checkpoint {idx+1} of {len(waypoints)}** ({coord})...")
                 
-                st.subheader("Safety")
-                safety = parsed_data["safety_and_security"]
-                st.metric("Nighttime Lighting", f"{safety['nighttime_lighting']} / 5")
-                st.metric("Pedestrian Activity", f"{safety['eyes_on_street']} / 5")
-
-            # Column 2: Mobility & Culture
-            with col2:
-                st.subheader("Mobility")
-                mobility = parsed_data["mobility"]
-                st.metric("Flat Terrain", f"{mobility['elevation_accessibility']} / 5")
-                st.metric("Stroller Friendly", f"{mobility['stroller_friendly']} / 5")
-                st.metric("Bike/Scooter Safety", f"{mobility['micro_mobility_safety']} / 5")
+                img_path = f"checkpoint_{idx+1}.jpg"
                 
-                st.subheader("Culture")
-                culture = parsed_data["aesthetics_and_culture"]
-                st.metric("Architecture & Beauty", f"{culture['historic_aesthetic']} / 5")
-                st.metric("Local vs Tourist", f"{culture['tourist_density']} / 5")
+                # Fetch street view image
+                fetch_street_view(coord, img_path)
+                
+                # Analyze image with Gemini
+                raw_json = analyze_street(img_path)
+                parsed_json = json.loads(raw_json)
+                
+                # Keep track of the results
+                route_scores.append((img_path, parsed_json))
+                
+                # Update progress bar
+                progress_bar.progress((idx + 1) / len(waypoints))
+                
+            status_text.success("Whole route evaluated successfully!")
+            
+            st.divider()
+            
+            # 3. Calculate Global Averages
+            num_pts = len(route_scores)
+            avg_peace = sum(item[1]["sensory_and_comfort"]["sensory_peaceful"] for item in route_scores) / num_pts
+            avg_shade = sum(item[1]["sensory_and_comfort"]["shade_coverage"] for item in route_scores) / num_pts
+            avg_light = sum(item[1]["safety_and_security"]["nighttime_lighting"] for item in route_scores) / num_pts
+            avg_access = sum(item[1]["mobility"]["stroller_friendly"] for item in route_scores) / num_pts
+            
+            # 4. Display High-Level Metric Scorecards
+            st.header("Route Scorecard Averages")
+            m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+            m_col1.metric("Peacefulness", f"{avg_peace:.1f} / 5")
+            m_col2.metric("Shade Coverage", f"{avg_shade:.1f} / 5")
+            m_col3.metric("Night Lighting", f"{avg_light:.1f} / 5")
+            m_col4.metric("Accessibility", f"{avg_access:.1f} / 5")
+            
+            st.divider()
+            
+            # 5. Display the Visual Journey Timeline
+            st.header("Visual Step-by-Step Journey")
+            
+            for idx, (img_file, data) in enumerate(route_scores):
+                st.subheader(f"Stop {idx+1}: Checkpoint Evaluation")
+                
+                # Layout layout: split image and metrics cleanly
+                layout_col1, layout_col2 = st.columns([1, 2])
+                
+                with layout_col1:
+                    if os.path.exists(img_file):
+                        st.image(img_file, use_container_width=True)
+                
+                with layout_col2:
+                    st.markdown(f"**Agent Assessment:** {data.get('brief_summary')}")
+                    
+                    # Sub-metrics display
+                    sm1, sm2, sm3, sm4 = st.columns(4)
+                    sm1.caption(f"Quiet: {data['sensory_and_comfort']['sensory_peaceful']}/5")
+                    sm2.caption(f"Shade: {data['sensory_and_comfort']['shade_coverage']}/5")
+                    sm3.caption(f"Light: {data['safety_and_security']['nighttime_lighting']}/5")
+                    sm4.caption(f"Mobility: {data['mobility']['stroller_friendly']}/5")
+                st.write("")
