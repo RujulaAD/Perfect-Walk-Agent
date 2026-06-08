@@ -46,13 +46,13 @@ def extract_user_weights(user_prompt: str):
         if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
             print("\nDaily Quota Exceeded in Translator. Activating NLP Fail-Safe...")
             
-            # Return a balanced, neutral set of weights to keep the math engine running
+            # Return a balanced, neutral set of weights AND a flag for the UI
             return {
+                "quota_reached": True, # <-- NEW FLAG
                 "peacefulness_weight": 0.5,
                 "shade_weight": 0.5,
                 "lighting_weight": 0.5,
                 "accessibility_weight": 0.5
             }
         else:
-            # Re-raise the error if it's not a quota issue (e.g., missing API key)
             raise e

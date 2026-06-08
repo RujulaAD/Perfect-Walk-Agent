@@ -7,7 +7,7 @@ from brain import analyze_street
 from translator import extract_user_weights
 import time
 
-st.set_page_config(page_title="The Perfect Walk", page_icon="🚶🏾‍♀️", layout="centered")
+st.set_page_config(page_title="The Perfect Walk", page_icon="👣", layout="centered")
 
 st.title("The Perfect Walk Agent")
 st.write("Enter your locations and describe your ideal walk. The AI will evaluate multiple paths in the background and select the mathematically perfect route for you.")
@@ -32,12 +32,13 @@ if st.button("Find My Perfect Route", type="primary"):
             with st.spinner("Translating your request into routing weights..."):
                 weights = extract_user_weights(user_prompt)
                 
-            st.success("User Preferences Understood!")
+            # <-- NEW: Check for the limit flag and show a friendly message
+            if weights.get("quota_reached"):
+                st.warning("The visual AI has reached its daily processing limit! We have applied a balanced routing profile and will use standard environmental estimates for your checkpoints today.")
+            else:
+                st.success("User Preferences Understood!")
+                
             w_col1, w_col2, w_col3, w_col4 = st.columns(4)
-            w_col1.metric("Peacefulness Priority", f"{weights.get('peacefulness_weight', 0.0)}")
-            w_col2.metric("Shade Priority", f"{weights.get('shade_weight', 0.0)}")
-            w_col3.metric("Lighting Priority", f"{weights.get('lighting_weight', 0.0)}")
-            w_col4.metric("Accessibility Priority", f"{weights.get('accessibility_weight', 0.0)}")
             
             # 2. Ask Google Maps for alternative paths
             with st.spinner("Asking Google for alternative paths..."):
@@ -144,7 +145,5 @@ if st.button("Find My Perfect Route", type="primary"):
                     st.write("---")
                     
         except Exception as error_msg:
-            # Diagnostic mode: Show the exact structural error
-            st.error(f"Internal Pipeline Error: {str(error_msg)}")
-            import traceback
-            st.code(traceback.format_exc(), language="python")
+            # Reverted back to the clean UX warning
+            st.error("Routing Error: Please make sure you pressed 'Enter' on your keyboard to apply both locations and that they are spelled correctly before searching.")
