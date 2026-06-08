@@ -2,50 +2,46 @@ import os
 import googlemaps
 from dotenv import load_dotenv
 
-# 1. Load your Maps API key from the hidden vault
 load_dotenv()
 MAPS_KEY = os.getenv('GOOGLE_MAPS_KEY')
-
-# Initialize the Google Maps Client
 gmaps = googlemaps.Client(key=MAPS_KEY)
 
-def get_route_waypoints(origin: str, destination: str):
+def get_multiple_routes(origin: str, destination: str):
     """
-    Requests walking directions from Google Maps and extracts coordinate checkpoints along the path.
+    Requests multiple alternative walking routes from Google Maps.
+    Returns a list of routes, where each route is a list of coordinate waypoints.
     """
-    print(f"Calculating walking route from '{origin}' to '{destination}'...")
+    print(f"Asking Google for ALL walking paths from '{origin}' to '{destination}'...")
     
-    # 2. Call the Directions API specifically requesting walking mode
-    directions = gmaps.directions(origin, destination, mode="walking")
+    # 1. We added 'alternatives=True' to force Google to give us options
+    directions = gmaps.directions(origin, destination, mode="walking", alternatives=True)
     
     if not directions:
-        print("Error: No route found.")
+        print("Error: No routes found.")
         return []
         
-    # 3. Drill down into the JSON response to grab the steps of the journey
-    steps = directions[0]['legs'][0]['steps']
-    waypoints = []
+    all_routes = []
     
-    # 4. Loop through every turn/step and grab its starting coordinates
-    for step in steps:
-        lat = step['start_location']['lat']
-        lng = step['start_location']['lng']
+    # 2. Loop through every alternative route Google gave us (usually 1 to 3)
+    for route_index, route in enumerate(directions):
+        steps = route['legs'][0]['steps']
+        waypoints = []
         
-        # Google Street View accepts raw coordinate strings just like an address!
-        coordinate_string = f"{lat},{lng}"
-        waypoints.append(coordinate_string)
+        # Extract the coordinates for this specific route
+        for step in steps:
+            lat = step['start_location']['lat']
+            lng = step['start_location']['lng']
+            waypoints.append(f"{lat},{lng}")
+            
+        all_routes.append(waypoints)
+        print(f"Route {route_index + 1}: Found {len(waypoints)} checkpoints.")
         
-    print(f"📍 Successfully extracted {len(waypoints)} checkpoints to evaluate.")
-    return waypoints
+    print(f"Successfully extracted {len(all_routes)} distinct walking routes.")
+    return all_routes
 
 # --- Local Test Engine ---
 if __name__ == "__main__":
-    # A quick test walk in NYC from Times Square to Bryant Park
-    start_point = "Times Square, New York, NY"
-    end_point = "Bryant Park, New York, NY"
+    start_point = "Washington Square Park, New York, NY"
+    end_point = "Union Square, New York, NY"
     
-    checkpoints = get_route_waypoints(start_point, end_point)
-    
-    print("\nCheckpoints ready for AI evaluation:")
-    for cp in checkpoints:
-        print(cp)
+    routes = get_multiple_routes(start_point, end_point)
