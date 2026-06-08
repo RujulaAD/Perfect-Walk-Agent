@@ -26,29 +26,33 @@ def extract_user_weights(user_prompt: str):
     4. accessibility_weight (Requires flat terrain, no stairs, mobility-friendly)
 
     Assign a float value between 0.0 and 1.0 for each metric. 
-    0.0 = User does not care about this at all based on their prompt.
-    1.0 = This is a critical factor for the user based on their prompt.
     Return ONLY a valid JSON object with these exact 4 keys.
     """
     
-    # 3. Call the AI and force a JSON response
-    response = client.models.generate_content(
-        model='gemini-2.5-flash-lite',
-        contents=user_prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            response_mime_type="application/json", # This is the magic line!
-        ),
-    )
-    
-    # 4. Convert the AI's JSON text back into a usable Python dictionary
-    return json.loads(response.text)
-
-# --- Local Test Engine ---
-if __name__ == "__main__":
-    # Test Scenario 1: A user with a stroller on a hot day
-    test_prompt = "I'm pushing a stroller and it's a scorching hot day. I don't care about anything else."
-    
-    weights = extract_user_weights(test_prompt)
-    print("\nExtracted Weights:")
-    print(json.dumps(weights, indent=4))
+    try:
+        # 3. Call the AI and force a JSON response
+        response = client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json", 
+            ),
+        )
+        return json.loads(response.text)
+        
+    except Exception as e:
+        # 4. The Architectural Fail-Safe
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            print("\nDaily Quota Exceeded in Translator. Activating NLP Fail-Safe...")
+            
+            # Return a balanced, neutral set of weights to keep the math engine running
+            return {
+                "peacefulness_weight": 0.5,
+                "shade_weight": 0.5,
+                "lighting_weight": 0.5,
+                "accessibility_weight": 0.5
+            }
+        else:
+            # Re-raise the error if it's not a quota issue (e.g., missing API key)
+            raise e
