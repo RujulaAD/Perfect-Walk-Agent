@@ -144,6 +144,7 @@ if st.button("Find My Perfect Route", type="primary"):
                     st.write("---")
                     
         except Exception as error_msg:
-            # Catch changes in unapplied text boxes or processing interruptions safely
-            st.error("Routing Error: Please make sure you pressed 'Enter' on your keyboard to apply both locations and that they are spelled correctly before searching.")
-            print(f"Internal Trace Capture: {error_msg}")
+            # Diagnostic mode: Show the exact structural error
+            st.error(f"Internal Pipeline Error: {str(error_msg)}")
+            import traceback
+            st.code(traceback.format_exc(), language="python")
