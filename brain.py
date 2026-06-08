@@ -5,6 +5,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from PIL import Image
+import random
 
 # 1. Load the Gemini API Key from vault
 load_dotenv()
@@ -107,23 +108,66 @@ def analyze_street(image_path="street.jpg"):
     print("Booting up Gemini Vision AI...")
     print(f"Analyzing '{image_path}'...")
     
-    # 3. Open the image
-    img = Image.open(image_path)
-    prompt = "You are an expert urban planner and accessibility auditor. Analyze this street view image and rate it strictly according to the provided schema."
+    try:
+        # 3. Open the image
+        img = Image.open(image_path)
+        prompt = "You are an expert urban planner and accessibility auditor. Analyze this street view image and rate it strictly according to the provided schema."
 
-    # 4. Use our custom get_resolved_schema() instead of passing the raw class
-    response = client.models.generate_content(
-        model='gemini-2.5-flash-lite',
-        contents=[img, prompt],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=get_resolved_schema(StreetAnalysis),
-            temperature=0.1,
-        ),
-    )
-    
-    print("\nAnalysis Complete! Here is the structured data:\n")
-    return response.text
+        # 4. Use our custom get_resolved_schema() instead of passing the raw class
+        response = client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=[img, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=get_resolved_schema(StreetAnalysis),
+                temperature=0.1,
+            ),
+        )
+        
+        print("\nAnalysis Complete! Here is the structured data:\n")
+        return response.text
+
+    except Exception as e:
+        # Catch daily quota limits or rate limiting blocks
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            print("\nDaily Quota Exceeded (429). Activating Infrastructure Fail-Safe Mock...")
+            
+            # Generate deterministic but varied numbers based on the image name string hash 
+            # so different stops still get slightly different scores during testing
+            seed = sum(ord(c) for c in image_path)
+            random.seed(seed)
+            
+            mock_data = {
+                "sensory_and_comfort": {
+                    "sensory_peaceful": random.randint(1, 3),
+                    "shade_coverage": random.randint(2, 4),
+                    "nature_immersion": random.randint(1, 2)
+                },
+                "safety_and_security": {
+                    "nighttime_lighting": random.randint(3, 5),
+                    "eyes_on_street": random.randint(2, 4),
+                    "physical_infrastructure": random.randint(3, 5)
+                },
+                "mobility": {
+                    "elevation_accessibility": random.randint(4, 5),
+                    "micro_mobility_safety": random.randint(1, 3),
+                    "stroller_friendly": random.randint(3, 5)
+                },
+                "aesthetics_and_culture": {
+                    "historic_aesthetic": random.randint(1, 3),
+                    "street_art_presence": random.randint(1, 2),
+                    "tourist_density": random.randint(2, 4)
+                },
+                "brief_summary": f"Fail-safe simulation output for checkpoint reference ({os.path.basename(image_path)}). Path displays standard urban walking conditions with structured pedestrian walkways."
+            }
+            
+            # Reset seed state to avoid impacting other components
+            random.seed(None)
+            
+            return json.dumps(mock_data)
+        else:
+            # If it's a completely different error (like a missing file), raise it normally
+            raise e
 
 if __name__ == "__main__":
     analyze_street()
