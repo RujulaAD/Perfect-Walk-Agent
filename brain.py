@@ -40,16 +40,37 @@ class StreetAnalysis(BaseModel):
     mobility: Mobility
     aesthetics_and_culture: AestheticsCulture
     brief_summary: str = Field(description="A 2-sentence summary of the street's vibe.")
-
-# --- THE BUG FIX: Schema Resolver ---
+# --- THE BUG FIX: Expanded Schema Resolver ---
 def get_resolved_schema(cls):
-    """Expands nested Pydantic schemas to bypass the Google GenAI $ref bug."""
+    """Expands nested Pydantic schemas and strips 'title' keys to satisfy Google GenAI."""
     schema = cls.model_json_schema()
-    if "$defs" not in schema:
-        return schema
     
-    # Extract the shortcuts
-    defs = schema.pop("$defs")
+    # 1. Extract and eliminate definitions if they exist
+    defs = schema.pop("$defs", None)
+    
+    def _clean_and_resolve(node):
+        if isinstance(node, dict):
+            # Remove the forbidden title key if present
+            node.pop("title", None)
+            
+            # Resolve references if present
+            if "$ref" in node and defs:
+                ref_key = node.pop("$ref").split("/")[-1]
+                node.update(defs[ref_key])
+                # Immediately clean the newly injected keys from the definition
+                node.pop("title", None)
+            
+            # Recursively clean children
+            for val in node.values():
+                _clean_and_resolve(val)
+                
+        elif isinstance(node, list):
+            for item in node:
+                _clean_and_resolve(item)
+                
+    _clean_and_resolve(schema)
+    return schema
+# ---------------------------------------------
     
     # Recursively hunt down and replace every shortcut with the real data
     def _resolve(node):
