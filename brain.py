@@ -70,27 +70,42 @@ def get_resolved_schema(cls):
                 
     _clean_and_resolve(schema)
     return schema
-# ---------------------------------------------
+
+# --- THE ROBUST BUG FIX: Safe Schema Resolver ---
+def get_resolved_schema(cls):
+    """Expands nested Pydantic schemas and strips 'title' keys safely."""
+    schema = cls.model_json_schema()
     
-    # Recursively hunt down and replace every shortcut with the real data
-    def _resolve(node):
+    # 1. Extract definitions if they exist
+    defs = schema.pop("$defs", None)
+    
+    def _clean_and_resolve(node):
         if isinstance(node, dict):
-            if "$ref" in node:
+            # Safe pop before iteration
+            node.pop("title", None)
+            
+            # Resolve references
+            if "$ref" in node and defs:
                 ref_key = node.pop("$ref").split("/")[-1]
                 node.update(defs[ref_key])
-            for val in node.values():
-                _resolve(val)
-        elif isinstance(node, list):
-            for item in node:
-                _resolve(item)
+                node.pop("title", None)
+            
+            # CRITICAL: Use list(node.values()) to prevent mutation runtime errors
+            for val in list(node.values()):
+                _clean_and_resolve(val)
                 
-    _resolve(schema)
+        elif isinstance(node, list):
+            # Create a shallow copy of the list for safe traversal
+            for item in list(node):
+                _clean_and_resolve(item)
+                
+    _clean_and_resolve(schema)
     return schema
-# ------------------------------------
+# -------------------------------------------------
 
 def analyze_street(image_path="street.jpg"):
-    print("🧠 Booting up Gemini Vision AI...")
-    print(f"👀 Analyzing '{image_path}'...")
+    print("Booting up Gemini Vision AI...")
+    print(f"Analyzing '{image_path}'...")
     
     # 3. Open the image
     img = Image.open(image_path)

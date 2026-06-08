@@ -9,11 +9,10 @@ gmaps = googlemaps.Client(key=MAPS_KEY)
 def get_multiple_routes(origin: str, destination: str):
     """
     Requests multiple alternative walking routes from Google Maps.
-    Returns a list of routes, where each route is a list of coordinate waypoints.
+    Returns a list of dictionaries containing waypoints and text instructions.
     """
     print(f"Asking Google for ALL walking paths from '{origin}' to '{destination}'...")
     
-    # 1. We added 'alternatives=True' to force Google to give us options
     directions = gmaps.directions(origin, destination, mode="walking", alternatives=True)
     
     if not directions:
@@ -22,18 +21,24 @@ def get_multiple_routes(origin: str, destination: str):
         
     all_routes = []
     
-    # 2. Loop through every alternative route Google gave us (usually 1 to 3)
     for route_index, route in enumerate(directions):
         steps = route['legs'][0]['steps']
         waypoints = []
+        instructions = [] # <-- NEW: Create a list to hold the text
         
-        # Extract the coordinates for this specific route
         for step in steps:
             lat = step['start_location']['lat']
             lng = step['start_location']['lng']
             waypoints.append(f"{lat},{lng}")
             
-        all_routes.append(waypoints)
+            # <-- NEW: Grab Google's raw HTML instruction for this step
+            instructions.append(step['html_instructions']) 
+            
+        # <-- NEW: Save both lists into a dictionary
+        all_routes.append({
+            "waypoints": waypoints,
+            "instructions": instructions
+        })
         print(f"Route {route_index + 1}: Found {len(waypoints)} checkpoints.")
         
     print(f"Successfully extracted {len(all_routes)} distinct walking routes.")

@@ -56,7 +56,10 @@ if st.button("Find My Perfect Route", type="primary"):
             waypoints_processed = 0
             
             # 4. Evaluate Every Route
-            for route_idx, waypoints in enumerate(all_routes):
+            for route_idx, route_dict in enumerate(all_routes):
+                waypoints = route_dict["waypoints"]       # Unpack the coordinates
+                instructions = route_dict["instructions"] # Unpack the text
+                
                 route_scores = []
 
                 # Check each waypoint on this specific route
@@ -102,7 +105,8 @@ if st.button("Find My Perfect Route", type="primary"):
                         "index": route_idx + 1,
                         "match": match_percentage,
                         "scores": route_scores,
-                        "averages": (avg_peace, avg_shade, avg_light, avg_access)
+                        "averages": (avg_peace, avg_shade, avg_light, avg_access),
+                        "instructions": instructions # <-- Add this line!
                     }
                     
             # 7. Display ONLY the Winning Route
@@ -121,7 +125,15 @@ if st.button("Find My Perfect Route", type="primary"):
             # Display Winner's Journey Map
             st.header("Your Optimized Journey")
             for idx, (img_file, data) in enumerate(best_route_data['scores']):
-                st.subheader(f"Stop {idx+1}")
+                
+                # Grab the turn-by-turn text for this specific step
+                step_direction = best_route_data['instructions'][idx]
+                
+                st.subheader(f"Step {idx+1}")
+                
+                # Streamlit's markdown allows us to render Google's raw HTML formatting
+                st.markdown(f"**{step_direction}**", unsafe_allow_html=True)
+                
                 layout_col1, layout_col2 = st.columns([1, 2])
                 with layout_col1:
                     if os.path.exists(img_file):
