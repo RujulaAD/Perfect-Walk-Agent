@@ -125,7 +125,7 @@ if st.button("Find My Perfect Route", type="primary"):
                 layout_col1, layout_col2 = st.columns([1, 2])
                 with layout_col1:
                     if os.path.exists(img_file):
-                        st.image(img_file, use_container_width=True)
+                        st.image(img_file, use_column_width=True)
                 with layout_col2:
                     st.markdown(f"**Agent Assessment:** {data.get('brief_summary')}")
                     sm1, sm2, sm3, sm4 = st.columns(4)
