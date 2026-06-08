@@ -54,7 +54,7 @@ def analyze_street(image_path="street.jpg"):
 
     # 4. Send the image and the schema to Gemini 2.5 Flash
     response = client.models.generate_content(
-        model='gemini-1.5-flash',
+        model='gemini-1.5-flash-8b',
         contents=[img, prompt],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
