@@ -30,26 +30,30 @@ Instead of just finding the shortest path, this agent translates your natural la
 ```bash
 git clone [https://github.com/yourusername/perfect-walk-agent.git](https://github.com/yourusername/perfect-walk-agent.git)
 cd perfect-walk-agent
+```
 
 ### 2. Set up a virtual environment
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+```
 
 ### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
+```
 
 ### 4. Set up Environment Variables
-Create a .env file in the root directory and add your required API keys:
-
-Code snippet
+Create a `.env` file in the root directory and add your required API keys:
+```env
 GOOGLE_MAPS_API_KEY="your_google_maps_key_here"
 GEMINI_API_KEY="your_gemini_key_here"
+```
 
 ### 5. Run the Application
 ```bash
 streamlit run app.py
+```
 
 ## Cloud Deployment
-This application is containerized and ready for serverless deployment on Google Cloud Run. Ensure requirements.txt is locked to your specific dependency versions before triggering a cloud build pipeline.
+This application is containerized and ready for serverless deployment on Google Cloud Run. Ensure `requirements.txt` is locked to your specific dependency versions before triggering a cloud build pipeline.
