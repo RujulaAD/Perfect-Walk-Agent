@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -13,7 +14,6 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 # 2. Define "God-Mode" Scorecard using Pydantic
-# This forces the AI to output exactly these keys and nothing else.
 class SensoryComfort(BaseModel):
     sensory_peaceful: int = Field(description="5 = quiet residential, 1 = loud construction/heavy traffic")
     shade_coverage: int = Field(description="5 = dense tree canopy/sky-scraper shadows, 1 = open concrete/intense sun")
@@ -34,7 +34,6 @@ class AestheticsCulture(BaseModel):
     street_art_presence: int = Field(description="5 = beautiful murals/sculptures, 1 = blank walls/vandalism")
     tourist_density: int = Field(description="5 = quiet local spot, 1 = heavy tourist trap")
 
-# Wrap all the categories into one master schema and ask for a quick summary
 class StreetAnalysis(BaseModel):
     sensory_and_comfort: SensoryComfort
     safety_and_security: SafetySecurity
@@ -42,28 +41,52 @@ class StreetAnalysis(BaseModel):
     aesthetics_and_culture: AestheticsCulture
     brief_summary: str = Field(description="A 2-sentence summary of the street's vibe.")
 
+# --- THE BUG FIX: Schema Resolver ---
+def get_resolved_schema(cls):
+    """Expands nested Pydantic schemas to bypass the Google GenAI $ref bug."""
+    schema = cls.model_json_schema()
+    if "$defs" not in schema:
+        return schema
+    
+    # Extract the shortcuts
+    defs = schema.pop("$defs")
+    
+    # Recursively hunt down and replace every shortcut with the real data
+    def _resolve(node):
+        if isinstance(node, dict):
+            if "$ref" in node:
+                ref_key = node.pop("$ref").split("/")[-1]
+                node.update(defs[ref_key])
+            for val in node.values():
+                _resolve(val)
+        elif isinstance(node, list):
+            for item in node:
+                _resolve(item)
+                
+    _resolve(schema)
+    return schema
+# ------------------------------------
+
 def analyze_street(image_path="street.jpg"):
-    print("Booting up Gemini Vision AI...")
-    print(f"Analyzing '{image_path}'...")
+    print("🧠 Booting up Gemini Vision AI...")
+    print(f"👀 Analyzing '{image_path}'...")
     
-    # 3. Open the image downloaded in Phase 1
+    # 3. Open the image
     img = Image.open(image_path)
-    
-    # The instruction given to the AI
     prompt = "You are an expert urban planner and accessibility auditor. Analyze this street view image and rate it strictly according to the provided schema."
 
-    # 4. Send the image and the schema to Gemini 2.5 Flash
+    # 4. Use our custom get_resolved_schema() instead of passing the raw class
     response = client.models.generate_content(
         model='gemini-2.5-flash-lite',
         contents=[img, prompt],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
-            response_schema=StreetAnalysis,
-            temperature=0.1, # Low temperature keeps the AI highly analytical and strict
+            response_schema=get_resolved_schema(StreetAnalysis),
+            temperature=0.1,
         ),
     )
     
-    print("\n✅ Analysis Complete! Here is the structured data:\n")
+    print("\nAnalysis Complete! Here is the structured data:\n")
     return response.text
 
 if __name__ == "__main__":
