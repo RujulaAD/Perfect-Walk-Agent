@@ -33,7 +33,7 @@ def extract_user_weights(user_prompt: str):
     
     # 3. Call the AI and force a JSON response
     response = client.models.generate_content(
-        model='gemini-1.5-flash-8b',
+        model='gemini-2.5-flash-lite',
         contents=user_prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
