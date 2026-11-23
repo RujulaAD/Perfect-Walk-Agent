@@ -1,5 +1,7 @@
 # 👣 The Perfect Walk Agent
 
+https://perfect-walk-agent.streamlit.app/ 
+
 An autonomous AI routing engine that evaluates the physical environment of multiple walking paths to find your mathematically perfect route. 
 
 Instead of just finding the shortest path, this agent translates your natural language preferences into mathematical weights, visually analyzes Google Street View imagery along multiple alternative routes, and scores them based on peacefulness, shade, lighting, and accessibility.
@@ -28,8 +30,8 @@ Instead of just finding the shortest path, this agent translates your natural la
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/yourusername/perfect-walk-agent.git](https://github.com/yourusername/perfect-walk-agent.git)
-cd perfect-walk-agent
+git clone https://github.com/RujulaAD/Perfect-Walk-Agent.git
+cd Perfect-Walk-Agent
 ```
 
 ### 2. Set up a virtual environment
@@ -46,7 +48,7 @@ pip install -r requirements.txt
 ### 4. Set up Environment Variables
 Create a `.env` file in the root directory and add your required API keys:
 ```env
-GOOGLE_MAPS_API_KEY="your_google_maps_key_here"
+GOOGLE_MAPS_KEY="your_google_maps_key_here"
 GEMINI_API_KEY="your_gemini_key_here"
 ```
 
@@ -55,5 +57,7 @@ GEMINI_API_KEY="your_gemini_key_here"
 streamlit run app.py
 ```
 
-## Cloud Deployment
-This application is containerized and ready for serverless deployment on Google Cloud Run. Ensure `requirements.txt` is locked to your specific dependency versions before triggering a cloud build pipeline.
+## Deployment
+The app is live on **Streamlit Community Cloud** at [https://perfect-walk-agent.streamlit.app/](https://perfect-walk-agent.streamlit.app/), configured with API keys via Streamlit Secrets (`GOOGLE_MAPS_KEY` and `GEMINI_API_KEY`) and daily Google Maps quota caps.
+
+An earlier containerized version was also deployed on **Google Cloud Run** using Docker.
